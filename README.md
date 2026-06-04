@@ -22,6 +22,10 @@ DANet is evaluated on the IP102 pest dataset, which contains 102 pest categories
 
 # Usage
 # Training
+```text
+
 python train.py
 # Testing
+```text
+
 python test.py
