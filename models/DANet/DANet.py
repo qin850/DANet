@@ -293,7 +293,7 @@ class DANet(nn.Module):
 
         self.W = nn.Parameter(trunc_normal_(torch.empty(self.w2v_att.shape[1], self.feat_channel)),#(300,768)
                               requires_grad=True)#
-        self.V = nn.Parameter(trunc_normal_(torch.empty(self.feat_channel, self.attritube_num)),#(768,85)
+        self.V = nn.Parameter(trunc_normal_(torch.empty(self.feat_channel, self.attritube_num)),#(768,168)
                               requires_grad=True)#
 
 
@@ -308,7 +308,7 @@ class DANet(nn.Module):
 
         self.backbone_patch = nn.Sequential(*list(basenet.children()))[0]
         self.backbone_drop= nn.Sequential(*list(basenet.children()))[1]
-        self.backbone_0 = nn.Sequential(*list(basenet.children()))[2][:-1]#VIT结构xiugai-1
+        self.backbone_0 = nn.Sequential(*list(basenet.children()))[2][:-1]#VIT结构 -1
         self.backbone_1 = nn.Sequential(*list(basenet.children()))[2][-1]#VIT最后的Block
 
         self.drop_path = 0.4
@@ -346,22 +346,22 @@ class DANet(nn.Module):
         d, _ = seen_att.shape#d=90
         #print(f"训练集样本数: {d}")
         score_o = score_o*self.scale#(32,102)
-        if d == self.cls_num:#gzsl测试阶段
+        if d == self.cls_num:
             score = score_o
-        if d == self.scls_num:#训练阶段
-            score = score_o[:, :d]#取前90
-            uu = self.ucls_num#12
+        if d == self.scls_num:
+            score = score_o[:, :d]
+            uu = self.ucls_num #12
             if self.training:
-                mean1 = score_o[:, :d].mean(1)#对前90个数取均值
-                std1 = score_o[:, :d].std(1)#对前90个数取方差
-                mean2 = score_o[:, -uu:].mean(1)#对后12个数取均值
-                std2 = score_o[:, -uu:].std(1)#对后12个数取方差
+                mean1 = score_o[:, :d].mean(1)
+                std1 = score_o[:, :d].std(1)
+                mean2 = score_o[:, -uu:].mean(1)
+                std2 = score_o[:, -uu:].std(1)
                 mean_score = F.relu6(mean1 - mean2)
                 std_score = F.relu6(std1 - std2)
                 mean_loss = mean_score.mean(0) + std_score.mean(0)
                 #return score, mean_loss
                 return score_o, mean_loss
-        if d == self.ucls_num:#czsl测试阶段 ucls_num=12
+        if d == self.ucls_num:
             score = score_o[:, -d:]
         return score, _
 
@@ -375,7 +375,7 @@ class DANet(nn.Module):
         loss_pmp = -torch.log(torch.mean(mass_unseen))
         return loss_pmp
 
-    def compute_aug_cross_entropy(self, S_pp, Labels, trian_class_counts):#(B,att_num),(B,)
+    def compute_aug_cross_entropy(self, S_pp, Labels, trian_class_counts):
         Prob = self.log_softmax_func(S_pp)
         labels = torch.nn.functional.one_hot(Labels, num_classes=102).float()
         if trian_class_counts != None:
@@ -425,9 +425,9 @@ class DANet(nn.Module):
         # labels = torch.argmax(Labels, dim=1)
         B, _ = features.shape
         features = F.normalize(features)
-        cos_matrix = features.mm(features.t())  # (B,B) 样本特征之间的相似度
-        pos_label_matrix = torch.stack([labels == labels[i] for i in range(B)]).float()  # (B,B) 正样本关系矩阵 元素为0或1
-        neg_label_matrix = 1 - pos_label_matrix  # 负样本关系矩阵
+        cos_matrix = features.mm(features.t()) 
+        pos_label_matrix = torch.stack([labels == labels[i] for i in range(B)]).float() 
+        neg_label_matrix = 1 - pos_label_matrix  
         pos_cos_matrix = 1 - cos_matrix
         neg_cos_matrix = cos_matrix - 0.4
         neg_cos_matrix[neg_cos_matrix < 0] = 0
@@ -438,36 +438,34 @@ class DANet(nn.Module):
     def forward(self, x, att=None, label=None, seen_att=None, att_all=None, seenclass=None, unseenclass=None,
                 trian_class_counts=None):
         self.batch = x.shape[0]
-        parts = torch.einsum('lw,wv->lv', self.w2v_att, self.W)  # (85,300)*(300,768)->(85,768)
-        parts = parts.expand(self.batch, -1, -1)  # (32,85,768)
+        parts = torch.einsum('lw,wv->lv', self.w2v_att, self.W) 
+        parts = parts.expand(self.batch, -1, -1)  
         patches = self.backbone_patch(x)  # (32,3,224,224)->(32,196,768)
         cls_token = self.cls_token.expand(x.shape[0], -1, -1)  # (32,1,768)
-        patches = torch.cat((cls_token, patches), dim=1)  # (32,197,768)
+        patches = torch.cat((cls_token, patches), dim=1)  
         feats_0 = self.backbone_drop(patches + self.pos_embed)
         feats_0 = self.backbone_0(feats_0)  # (32,197,768)
-        #feats_0 = feats_0[:, 1:, :]  # 剔除cls token (B, 196, 768)
+        #feats_0 = feats_0[:, 1:, :]  
 
         # 获取用于后续的特征
-        #feats_in = feats_no_prompts[:, 1:, :]  # 剔除cls token (B, 196, 768)
-        feats_in = feats_0[:, 1:, :]  # 剔除cls token (B, 196, 768)
+        #feats_in = feats_no_prompts[:, 1:, :] 
+        feats_in = feats_0[:, 1:, :] 
         feats_in = self.Spectrum(feats_in)
 
-        ################################################################################################
-        # 第一层-1（保持不变）
         feats_out, _, _ = self.blocks(feats_in.transpose(1, 2), parts=parts)
         patches_1 = torch.cat((cls_token, feats_out.transpose(1, 2)), dim=1)  # (32,768,196)->(32,197,768)
-        feats_1 = self.backbone_1(patches_1 + self.pos_embed)  # (32,197,768) 将结果输入给分类头
-        feats_1 = feats_1[:, 1:, :]  # (32,196,768)->(32,197,768)# 剔除分类头结果
-        # 第一层-2
-        feats_1, attn_0, _ = self.blocks(feats_1.transpose(1, 2), parts=parts)  # (32,768,196),(32,85),(32,85)
+        feats_1 = self.backbone_1(patches_1 + self.pos_embed)  # (32,197,768)
+        feats_1 = feats_1[:, 1:, :]  # (32,196,768)->(32,197,768)
+       
+        feats_1, attn_0, _ = self.blocks(feats_1.transpose(1, 2), parts=parts)
         feats_1_ = feats_1  # (32,768,196)
-        # 平均池化
+      
         out_1 = self.avgpool1d(feats_1_.view(self.batch, self.feat_channel, -1)).view(self.batch, -1)
-        out = torch.einsum('bc,cd->bd', out_1, self.V)  # (B, 85)
+        out = torch.einsum('bc,cd->bd', out_1, self.V)  
 
-        # 直接使用全部168个输出，不分层
-        f_o = out  # (B, 168)
-        #f_o = (f_o + p_out_score) / 2
+       
+        f_o = out  
+      
         score, b = self.compute_score(out, seen_att, att_all)
 
         if not self.training:
