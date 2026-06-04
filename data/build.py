@@ -85,7 +85,7 @@ def build_dataloader(cfg, is_distributed=False):
             test_unseen_loc.min() < 0):
         raise ValueError(f"索引为负数！请检查数据")
 
-    print(f"✓ 索引有效性验证通过")
+    print(f"索引有效性验证通过")
     
     att_name = 'att'
     matcontent2 = io.loadmat(dataroot + "/allclasses_names.mat")
@@ -144,25 +144,25 @@ def build_dataloader(cfg, is_distributed=False):
 
     print(f"\n=== 重叠检查 ===")
     if len(overlap_train_unseen) > 0:
-        print(f"错误！训练集和测试不可见的重叠类别数: {len(overlap_train_unseen)}")
-        print(f"   重叠类别: {sorted(list(overlap_train_unseen))}")
+        print(f"训练集和测试不可见的重叠类别数: {len(overlap_train_unseen)}")
+        print(f" 重叠类别: {sorted(list(overlap_train_unseen))}")
         print(f"\n请检查：")
         print(f"1. splits_group_B.mat 文件是否是用最新代码生成的？")
         print(f"2. unseen_ids 配置是否为 [5, 9, 21, 31, 37, 40, 47, 53, 80, 86, 96, 100]？")
         raise RuntimeError("数据分割错误：训练集包含unseen类别！")
     else:
-        print(f"✓ 训练集和测试不可见集无重叠")
+        print(f"训练集和测试不可见集无重叠")
 
     if len(overlap_seen_unseen) > 0:
-        print(f" 错误！测试可见和测试不可见的重叠类别数: {len(overlap_seen_unseen)}")
-        print(f"   重叠类别: {sorted(list(overlap_seen_unseen))}")
+        print(f" 测试可见和测试不可见的重叠类别数: {len(overlap_seen_unseen)}")
+        print(f" 重叠类别: {sorted(list(overlap_seen_unseen))}")
         raise RuntimeError("数据分割错误：测试可见集和测试不可见集有重叠！")
     else:
-        print(f"✓ 测试可见集和测试不可见集无重叠")
+        print(f"测试可见集和测试不可见集无重叠")
 
     # 这个重叠是正常的（训练集和测试可见集共享类别）
     overlap_train_seen = train_classes & test_seen_classes
-    print(f"✓ 训练集和测试可见的共享类别数: {len(overlap_train_seen)} （正常）")
+    print(f"训练集和测试可见的共享类别数: {len(overlap_train_seen)} （正常）")
     # ==========================================
 
     train_test_att = np.concatenate((train_att_unique, att_unseen))
@@ -173,7 +173,7 @@ def build_dataloader(cfg, is_distributed=False):
     expected_total = len(train_classes) + len(test_unseen_classes)
     if total_classes != expected_total:
         print(
-            f"⚠ 警告：总类别数({total_classes}) ≠ seen类别({len(train_classes)}) + unseen类别({len(test_unseen_classes)}) = {expected_total}")
+            f"总类别数({total_classes}) ≠ seen类别({len(train_classes)}) + unseen类别({len(test_unseen_classes)}) = {expected_total}")
 
     test_img_seen = new_img_files[test_seen_loc]
     test_label_seen = label[test_seen_loc].astype(int)
