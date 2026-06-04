@@ -7,6 +7,7 @@ ImageNet-1k weights @ 224x224, source https://github.com/google-research/vision_
 If needed, please download the corresponding pre-trained backbone before training or evaluation.
 # Datasets
 DANet is evaluated on the IP102 pest dataset, which contains 102 pest categories commonly observed in agricultural environments.
+https://github.com/xpwu95/IP102
 
 ## Repository Structure
 
