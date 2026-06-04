@@ -1,7 +1,7 @@
 # DANet
 A network is proposed for pest classification in zero-sample scenarios.
 # Download Pre-trained Weights
-# ImageNet-1k Pre-trained Backbone
+ImageNet-1k Pre-trained Backbone
 # We use ImageNet-1k pre-trained weights for the ViT backbone at 224 × 224 resolution.
 ImageNet-1k weights @ 224x224, source https://github.com/google-research/vision_transformer.
 If needed, please download the corresponding pre-trained backbone before training or evaluation.
